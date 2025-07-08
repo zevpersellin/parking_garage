@@ -1,0 +1,520 @@
+{
+	"info": {
+		"_postman_id": "parking-garage-api-collection",
+		"name": "Parking Garage Management API",
+		"description": "Complete collection for testing the Parking Garage Management API endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Spot Management",
+			"item": [
+				{
+					"name": "Get All Spots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/spots",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"spots"
+							]
+						},
+						"description": "Retrieve all parking spots with their current status"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Available Spots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/spots/available",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"spots",
+								"available"
+							]
+						},
+						"description": "Retrieve only the available parking spots"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Spot Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"OCCUPIED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/spots/A1/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"spots",
+								"A1",
+								"status"
+							]
+						},
+						"description": "Manually update a parking spot's status. Valid statuses: AVAILABLE, OCCUPIED"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Spot Status - Invalid Spot",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"OCCUPIED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/spots/INVALID-SPOT/status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"spots",
+								"INVALID-SPOT",
+								"status"
+							]
+						},
+						"description": "Test error handling for invalid spot ID (should return 404)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing parking spots"
+		},
+		{
+			"name": "Car Management",
+			"item": [
+				{
+					"name": "Check-in Car",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"ABC-123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Check-in a car and assign it to the first available parking spot"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out Car",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"ABC-123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-out",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-out"
+							]
+						},
+						"description": "Check-out a car and free up its assigned parking spot"
+					},
+					"response": []
+				},
+				{
+					"name": "Find Car by License Plate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cars/ABC-123",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"ABC-123"
+							]
+						},
+						"description": "Search for a car by its license plate number"
+					},
+					"response": []
+				},
+				{
+					"name": "Find Car - Not Found",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cars/NONEXISTENT",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"NONEXISTENT"
+							]
+						},
+						"description": "Test error handling for car not found (should return 404)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out Car - Not Found",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"GHOST-CAR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-out",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-out"
+							]
+						},
+						"description": "Test error handling for checking out a non-existent car (should return 404)"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for managing car check-ins and check-outs"
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Complete Workflow Test",
+					"item": [
+						{
+							"name": "1. Check Available Spots",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/spots/available",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"spots",
+										"available"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "2. Check-in Car",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-TEST\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "3. Find the Car",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/cars/WORKFLOW-TEST",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"WORKFLOW-TEST"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "4. Check Available Spots Again",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/spots/available",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"spots",
+										"available"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "5. Check-out Car",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-TEST\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-out",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-out"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "6. Verify Spot is Available",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/spots/available",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"spots",
+										"available"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Complete workflow test: check availability → check-in → find car → check-out → verify"
+				},
+				{
+					"name": "Garage Full Scenario",
+					"item": [
+						{
+							"name": "Fill Garage - Car 1",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"FULL-CAR-1\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Fill Garage - Car 2",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"FULL-CAR-2\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Continue filling until garage is full...",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"FULL-CAR-X\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Keep changing the license plate (FULL-CAR-3, FULL-CAR-4, etc.) until garage is full"
+							},
+							"response": []
+						},
+						{
+							"name": "Try to Check-in When Full",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"OVERFLOW-CAR\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "This should return 409 CONFLICT with GARAGE_FULL error"
+							},
+							"response": []
+						}
+					],
+					"description": "Test the garage full scenario - fill all spots then try to add one more"
+				}
+			],
+			"description": "Complete test scenarios and workflows"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api/v1",
+			"type": "string"
+		}
+	]
+}

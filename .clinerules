@@ -1,0 +1,209 @@
+# .clinerules
+
+preferred_shell=powershell
+
+---
+
+# Cline Behavior
+
+- Analyze errors, try one fix, then stop and ask user if still failing.
+- Use tools step-by-step, wait for confirmation.
+- MCP server dir: `../MCP`.
+- Enforce best practices in `PRD/all_best_practices.md` before coding.
+- Suggest refactoring code files when they reach approximately 500 lines.
+- Consult `../RevitMasterWorkspace.code-workspace` for full multi-root workspace context at the start of tasks.
+
+---
+
+# MCP Server Development
+
+- **Plan:** Define problem, API/service, auth needed.
+- **Implement:**
+  - JS:
+    ```powershell
+    npx @modelcontextprotocol/create-server my-server; cd my-server; npm install
+    ```
+  - Python:
+    ```powershell
+    pip install mcp
+    # or
+    uv add "mcp[cli]"
+    ```
+  - Use MCP SDK for development.
+  - Add logging:
+    - TypeScript:
+      ```typescript
+      console.error('[Setup] Init srv...');
+      console.error('[API] Req to:', endpoint);
+      console.error('[Err]', error);
+      ```
+    - Python:
+      ```python
+      import logging
+      logging.error('[Setup] Init srv...')
+      logging.error(f'[API] Req: {endpoint}')
+      logging.error(f'[Err] {str(error)}')
+      ```
+  - Add types, error handling, rate limits, and retry mechanisms.
+  - Get credentials from user securely.
+  - Add to MCP settings (typically located at C:\Users\perse\AppData\Roaming\Code\User\globalStorage\saoudrizwan.claude-dev\cline_mcp_settings.json):
+    ```json
+    {
+      "mcpServers": {
+        "my-server": {
+          "command": "node",
+          "args": ["path/to/build/index.js"],
+          "env": { "API_KEY": "user-key" },
+          "disabled": false,
+          "autoApprove": []
+        }
+      }
+    }
+    ```
+- **Test:** Test every tool via `use_mcp_tool`. Confirm outputs. No `attempt_completion` until all pass. Ensure test coverage for edge cases.
+- **Complete:** All tools tested and confirmed. Document any known issues or limitations.
+
+---
+
+# Sequential Thinking MCP Server
+
+The Sequential Thinking MCP server provides tools for dynamic and reflective problem-solving through a structured thinking process.
+
+## Installation
+
+```powershell
+# Create directory for the server
+mkdir -Force "C:\Users\perse\Documents\Cline\MCP\sequentialthinking"
+
+# Initialize npm project and install packages
+cd "C:\Users\perse\Documents\Cline\MCP\sequentialthinking"
+npm init -y
+npm install @modelcontextprotocol/server-sequential-thinking
+npm install @modelcontextprotocol/sdk
+
+# Update package.json to use ES modules
+# Add "type": "module" to package.json
+```
+
+## Configuration
+
+Add to cline_mcp_settings.json (C:\Users\perse\AppData\Roaming\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json):
+
+```json
+"github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking": {
+  "command": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-sequential-thinking"
+  ],
+  "env": {},
+  "disabled": false,
+  "autoApprove": []
+}
+```
+
+## Usage
+
+The Sequential Thinking tool takes the following parameters:
+- `thought` (string): The current thinking step
+- `nextThoughtNeeded` (boolean): Whether another thought step is needed
+- `thoughtNumber` (integer): Current thought number
+- `totalThoughts` (integer): Estimated total thoughts needed
+- `isRevision` (boolean, optional): Whether this revises previous thinking
+- `revisesThought` (integer, optional): Which thought is being reconsidered
+- `branchFromThought` (integer, optional): Branching point thought number
+- `branchId` (string, optional): Branch identifier
+- `needsMoreThoughts` (boolean, optional): If more thoughts are needed
+
+Example usage:
+
+```
+<use_mcp_tool>
+<server_name>github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking</server_name>
+<tool_name>sequential_thinking</tool_name>
+<arguments>
+{
+  "thought": "When designing a steel beam, we first need to identify the loads that will act on the structure.",
+  "nextThoughtNeeded": true,
+  "thoughtNumber": 1,
+  "totalThoughts": 5
+}
+</arguments>
+</use_mcp_tool>
+```
+
+---
+
+# Key Rules
+
+- Use MCP SDK for consistent implementation.
+- Add comprehensive logging for debugging and monitoring.
+- Test all tools thoroughly before deployment.
+- Handle errors gracefully with appropriate user feedback.
+- Never skip tests before completion.
+- Follow consistent code formatting and style guidelines as per project standards.
+
+---
+
+# MCP Rules
+
+Utilize a .clinerules file to support intelligent MCP server activation through keyword-based triggers, making Cline's tool selection more intuitive and context-aware.
+
+## How MCP Rules Work
+MCP Rules group connected MCP servers into functional categories and define trigger keywords that activate them automatically when detected in conversations with Cline.
+
+## Configuration Structure
+- **Categories:** Group related servers (e.g., "webInteraction", "mediaAndDesign")
+- **Servers:** List server names in each category
+- **Triggers:** Keywords that activate these servers
+- **Description:** Human-readable category explanation
+
+## Benefits of MCP Rules
+- **Contextual Tool Selection:** Cline selects appropriate tools based on conversation context
+- **Reduced Friction:** No need to manually specify which tool to use
+- **Organized Capabilities:** Logically group related tools and servers
+- **Prioritization:** Handle ambiguous cases with explicit priority ordering
+
+## Example Configuration
+```json
+{
+  "mcpRules": {
+    "webInteraction": {
+      "servers": [
+        "firecrawl-mcp-server",
+        "fetch-mcp"
+      ],
+      "triggers": [
+        "web", "scrape", "browse", "website"
+      ],
+      "description": "Tools for web browsing and scraping"
+    },
+    "structuralAnalysis": {
+      "servers": [
+        "excel-rules",
+        "revit-mcp"
+      ],
+      "triggers": [
+        "structural", "analysis", "revit", "material", "design"
+      ],
+      "description": "Tools for structural engineering and Revit integration"
+    },
+    "problemSolving": {
+      "servers": [
+        "github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking"
+      ],
+      "triggers": [
+        "sequential", "thinking", "step-by-step", "problem-solving", "analysis"
+      ],
+      "description": "Tools for breaking down complex problems into manageable steps"
+    }
+  },
+  "defaultBehavior": {
+    "priorityOrder": [
+      "structuralAnalysis",
+      "problemSolving",
+      "webInteraction"
+    ],
+    "fallbackBehavior": "Ask user which tool would be most appropriate"
+  }
+}
