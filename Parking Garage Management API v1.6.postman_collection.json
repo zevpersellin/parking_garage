@@ -104,6 +104,33 @@
 						"description": "Test error handling for invalid spot ID (should return 404 with SPOT_NOT_FOUND error)"
 					},
 					"response": []
+				},
+				{
+					"name": "Create New Spot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"D1\",\n  \"level\": 3,\n  \"number\": 1,\n  \"size\": \"COMPACT\",\n  \"features\": [\"EV_CHARGING\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/spots",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"spots"
+							]
+						},
+						"description": "Create a new parking spot. New spots are available by default."
+					},
+					"response": []
 				}
 			],
 			"description": "Endpoints for managing parking spots with size and feature information"
@@ -794,10 +821,37 @@
 			"name": "Test Scenarios",
 			"item": [
 				{
-					"name": "Complete Workflow Test v1.5",
+					"name": "Complete Workflow Test v1.6",
 					"item": [
 						{
-							"name": "1. Check Available Spots",
+							"name": "1. Create New Spot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"id\": \"D1\",\n  \"level\": 3,\n  \"number\": 1,\n  \"size\": \"COMPACT\",\n  \"features\": [\"EV_CHARGING\"]\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/spots",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"spots"
+									]
+								},
+								"description": "Create a new parking spot to be used in the workflow."
+							},
+							"response": []
+						},
+						{
+							"name": "2. Check Available Spots",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -816,7 +870,7 @@
 							"response": []
 						},
 						{
-							"name": "2. Check-in Car with Size",
+							"name": "3. Check-in Car with Size",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -827,7 +881,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V15\",\n  \"size\": \"COMPACT\"\n}"
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V16\",\n  \"size\": \"COMPACT\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/cars/check-in",
@@ -844,18 +898,18 @@
 							"response": []
 						},
 						{
-							"name": "3. Find the Car",
+							"name": "4. Find the Car",
 							"request": {
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/cars/WORKFLOW-V15",
+									"raw": "{{baseUrl}}/cars/WORKFLOW-V16",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"cars",
-										"WORKFLOW-V15"
+										"WORKFLOW-V16"
 									]
 								},
 								"description": "Search for the car using the new vehicle search feature"
@@ -863,7 +917,7 @@
 							"response": []
 						},
 						{
-							"name": "4. Check Available Spots Again",
+							"name": "5. Check Available Spots Again",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -882,7 +936,7 @@
 							"response": []
 						},
 						{
-							"name": "5. Check-out Car with Fee",
+							"name": "6. Check-out Car with Fee",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -893,7 +947,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V15\"\n}"
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V16\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/cars/check-out",
@@ -910,7 +964,7 @@
 							"response": []
 						},
 						{
-							"name": "6. Verify Spot is Available",
+							"name": "7. Verify Spot is Available",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -929,18 +983,18 @@
 							"response": []
 						},
 						{
-							"name": "7. Try to Find Checked-out Car",
+							"name": "8. Try to Find Checked-out Car",
 							"request": {
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/cars/WORKFLOW-V15",
+									"raw": "{{baseUrl}}/cars/WORKFLOW-V16",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"cars",
-										"WORKFLOW-V15"
+										"WORKFLOW-V16"
 									]
 								},
 								"description": "Verify car is no longer in the system (should return 404)"
@@ -948,7 +1002,7 @@
 							"response": []
 						}
 					],
-					"description": "Complete workflow test with v1.5 features: size compatibility, vehicle search, and fee calculation"
+					"description": "Complete workflow test with v1.6 features: spot creation, size compatibility, vehicle search, and fee calculation"
 				},
 				{
 					"name": "Multi-Vehicle Scenario",

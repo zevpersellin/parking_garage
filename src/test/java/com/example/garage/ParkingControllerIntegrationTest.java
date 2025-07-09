@@ -398,4 +398,25 @@ public class ParkingControllerIntegrationTest {
         assertThat(availableSpot.status()).isEqualTo(ParkingStatus.AVAILABLE);
         assertThat(availableSpot.features()).isEqualTo(occupiedSpot.features());
     }
+
+    @Test
+    void testCreateNewSpot() {
+        // 1. Create a new spot
+        CreateSpotRequest createSpotRequest = new CreateSpotRequest("D1", 3, 1, VehicleSize.COMPACT, java.util.Collections.singletonList("EV_CHARGING"));
+        ResponseEntity<ParkingSpot> createResponse = restTemplate.postForEntity("/api/v1/spots", createSpotRequest, ParkingSpot.class);
+
+        assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(createResponse.getBody()).isNotNull();
+        assertThat(createResponse.getBody().id()).isEqualTo("D1");
+        assertThat(createResponse.getBody().level()).isEqualTo(3);
+        assertThat(createResponse.getBody().number()).isEqualTo(1);
+        assertThat(createResponse.getBody().size()).isEqualTo(VehicleSize.COMPACT);
+        assertThat(createResponse.getBody().features()).contains("EV_CHARGING");
+        assertThat(createResponse.getBody().status()).isEqualTo(ParkingStatus.AVAILABLE);
+
+        // 2. Verify the new spot is in the list of all spots
+        ResponseEntity<ParkingSpot[]> spotsResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsResponse.getBody()).isNotNull();
+        assertThat(spotsResponse.getBody()).anyMatch(spot -> spot.id().equals("D1"));
+    }
 }
