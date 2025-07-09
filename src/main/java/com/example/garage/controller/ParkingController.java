@@ -1,8 +1,6 @@
 package com.example.garage.controller;
 
-import com.example.garage.controller.dto.CheckInRequest;
-import com.example.garage.controller.dto.CheckOutRequest;
-import com.example.garage.controller.dto.UpdateSpotStatusRequest;
+import com.example.garage.controller.dto.*;
 import com.example.garage.model.Car;
 import com.example.garage.model.ParkingSpot;
 import com.example.garage.service.ParkingService;
@@ -40,14 +38,15 @@ public class ParkingController {
 
     @PostMapping("/cars/check-in")
     public ResponseEntity<Car> checkIn(@RequestBody CheckInRequest checkInRequest) {
-        Car car = parkingService.checkIn(checkInRequest.licensePlate());
+        Car car = parkingService.checkIn(checkInRequest.licensePlate(), checkInRequest.size());
         return ResponseEntity.status(HttpStatus.CREATED).body(car);
     }
 
     @PostMapping("/cars/check-out")
-    public ResponseEntity<Void> checkOut(@RequestBody CheckOutRequest checkOutRequest) {
-        parkingService.checkOut(checkOutRequest.licensePlate());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<CheckOutResponse> checkOut(@RequestBody CheckOutRequest checkOutRequest) {
+        double fee = parkingService.checkOut(checkOutRequest.licensePlate());
+        CheckOutResponse response = new CheckOutResponse("Check-out successful", checkOutRequest.licensePlate(), fee);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/cars/{licensePlate}")

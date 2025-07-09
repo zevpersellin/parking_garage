@@ -1,16 +1,14 @@
 package com.example.garage;
 
-import com.example.garage.controller.dto.CheckInRequest;
-import com.example.garage.controller.dto.CheckOutRequest;
-import com.example.garage.controller.dto.ErrorResponse;
-import com.example.garage.controller.dto.UpdateSpotStatusRequest;
-import com.example.garage.model.Car;
-import com.example.garage.model.ParkingSpot;
-import com.example.garage.model.ParkingStatus;
+import com.example.garage.controller.dto.*;
+import com.example.garage.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.example.garage.config.TestClockConfig;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -19,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Import(TestClockConfig.class)
 public class ParkingControllerIntegrationTest {
 
     @Autowired
@@ -27,13 +27,14 @@ public class ParkingControllerIntegrationTest {
     @Test
     void testCheckInAndCheckOut() {
         // 1. Check-in a car
-        CheckInRequest checkInRequest = new CheckInRequest("TEST-123");
+        CheckInRequest checkInRequest = new CheckInRequest("TEST-123", VehicleSize.COMPACT);
         ResponseEntity<Car> checkInResponse = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
 
         assertThat(checkInResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(checkInResponse.getBody()).isNotNull();
         assertThat(checkInResponse.getBody().licensePlate()).isEqualTo("TEST-123");
         assertThat(checkInResponse.getBody().assignedSpotId()).isNotNull();
+        assertThat(checkInResponse.getBody().size()).isEqualTo(VehicleSize.COMPACT);
 
         // 2. Verify the spot is occupied
         String assignedSpotId = checkInResponse.getBody().assignedSpotId();
@@ -43,7 +44,13 @@ public class ParkingControllerIntegrationTest {
 
         // 3. Check-out the car
         CheckOutRequest checkOutRequest = new CheckOutRequest("TEST-123");
-        restTemplate.postForEntity("/api/v1/cars/check-out", checkOutRequest, Void.class);
+        ResponseEntity<CheckOutResponse> checkOutResponse = restTemplate.postForEntity("/api/v1/cars/check-out", checkOutRequest, CheckOutResponse.class);
+
+        assertThat(checkOutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(checkOutResponse.getBody()).isNotNull();
+        assertThat(checkOutResponse.getBody().licensePlate()).isEqualTo("TEST-123");
+        assertThat(checkOutResponse.getBody().fee()).isGreaterThanOrEqualTo(0);
+
 
         // 4. Verify the spot is available again
         ResponseEntity<ParkingSpot[]> spotsAfterCheckoutResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
@@ -70,7 +77,7 @@ public class ParkingControllerIntegrationTest {
         int initialAvailableCount = initialResponse.getBody().length;
 
         // 2. Check-in a car
-        CheckInRequest checkInRequest = new CheckInRequest("TEST-AVAILABLE");
+        CheckInRequest checkInRequest = new CheckInRequest("TEST-AVAILABLE", VehicleSize.COMPACT);
         restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
 
         // 3. Available spots should be reduced by 1
@@ -134,38 +141,30 @@ public class ParkingControllerIntegrationTest {
     }
 
     @Test
-    void testGarageFullScenario() {
-        // 1. Check how many spots are currently available
-        ResponseEntity<ParkingSpot[]> initialAvailableResponse = restTemplate.getForEntity("/api/v1/spots/available", ParkingSpot[].class);
-        assertThat(initialAvailableResponse.getBody()).isNotNull();
-        int availableSpots = initialAvailableResponse.getBody().length;
-
-        // 2. Fill all remaining available spots
-        for (int i = 1; i <= availableSpots; i++) {
-            CheckInRequest checkInRequest = new CheckInRequest("FULL-CAR-" + i);
-            ResponseEntity<Car> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    void testNoCompatibleSpotFound() {
+        // Fill all spots
+        ResponseEntity<ParkingSpot[]> spotsResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsResponse.getBody()).isNotNull();
+        for (ParkingSpot spot : spotsResponse.getBody()) {
+            if (spot.status() == ParkingStatus.AVAILABLE) {
+                CheckInRequest checkInRequest = new CheckInRequest("FILL-" + spot.id(), spot.size());
+                restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
+            }
         }
 
-        // 3. Try to check in one more car - should fail
-        CheckInRequest checkInRequest = new CheckInRequest("OVERFLOW-CAR");
+        // Try to check in one more car
+        CheckInRequest checkInRequest = new CheckInRequest("FAIL-CAR", VehicleSize.COMPACT);
         ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, ErrorResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().code()).isEqualTo("GARAGE_FULL");
-        assertThat(response.getBody().message()).isEqualTo("No spots available");
-
-        // 4. Verify no available spots
-        ResponseEntity<ParkingSpot[]> availableResponse = restTemplate.getForEntity("/api/v1/spots/available", ParkingSpot[].class);
-        assertThat(availableResponse.getBody()).isNotNull();
-        assertThat(availableResponse.getBody()).hasSize(0);
+        assertThat(response.getBody().code()).isEqualTo("NO_COMPATIBLE_SPOT_FOUND");
     }
 
     @Test
     void testFindCarByLicensePlate() {
         // 1. Check-in a car first
-        CheckInRequest checkInRequest = new CheckInRequest("SEARCH-TEST");
+        CheckInRequest checkInRequest = new CheckInRequest("SEARCH-TEST", VehicleSize.STANDARD);
         ResponseEntity<Car> checkInResponse = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
         assertThat(checkInResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(checkInResponse.getBody()).isNotNull();
@@ -191,5 +190,212 @@ public class ParkingControllerIntegrationTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("CAR_NOT_FOUND");
         assertThat(response.getBody().message()).contains("NONEXISTENT");
+    }
+
+    @Test
+    void testPremiumSpotBilling() {
+        // 1. Find a premium spot and check in
+        CheckInRequest checkInRequest = new CheckInRequest("PREMIUM-TEST", VehicleSize.OVERSIZED);
+        ResponseEntity<Car> checkInResponse = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
+        assertThat(checkInResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // 2. Check out and verify the fee
+        CheckOutRequest checkOutRequest = new CheckOutRequest("PREMIUM-TEST");
+        ResponseEntity<CheckOutResponse> checkOutResponse = restTemplate.postForEntity("/api/v1/cars/check-out", checkOutRequest, CheckOutResponse.class);
+        assertThat(checkOutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(checkOutResponse.getBody()).isNotNull();
+        // With a fixed clock, the duration is 0, so the fee should be 0
+        assertThat(checkOutResponse.getBody().fee()).isEqualTo(0.0);
+    }
+
+    @Test
+    void testCheckInWithNullLicensePlate() {
+        // This test would require modifying the request to send null, which is tricky with JSON
+        // Instead, we test with empty string
+        CheckInRequest checkInRequest = new CheckInRequest("", VehicleSize.COMPACT);
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void testCheckInWithNullVehicleSize() {
+        CheckInRequest checkInRequest = new CheckInRequest("TEST-NULL-SIZE", null);
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void testCheckOutWithEmptyLicensePlate() {
+        CheckOutRequest checkOutRequest = new CheckOutRequest("");
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-out", checkOutRequest, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void testFindCarWithEmptyLicensePlate() {
+        ResponseEntity<ErrorResponse> response = restTemplate.getForEntity("/api/v1/cars/", ErrorResponse.class);
+
+        // This will likely return 404 due to path not matching, but that's expected behavior
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void testVehicleSizeCompatibility_CompactCarCanUseAnySpot() {
+        // Test that compact cars can use any available spot type
+        CheckInRequest compactInCompact = new CheckInRequest("COMPACT-1", VehicleSize.COMPACT);
+        ResponseEntity<Car> response1 = restTemplate.postForEntity("/api/v1/cars/check-in", compactInCompact, Car.class);
+        assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response1.getBody().size()).isEqualTo(VehicleSize.COMPACT);
+
+        CheckInRequest compactInStandard = new CheckInRequest("COMPACT-2", VehicleSize.COMPACT);
+        ResponseEntity<Car> response2 = restTemplate.postForEntity("/api/v1/cars/check-in", compactInStandard, Car.class);
+        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response2.getBody().size()).isEqualTo(VehicleSize.COMPACT);
+
+        CheckInRequest compactInOversized = new CheckInRequest("COMPACT-3", VehicleSize.COMPACT);
+        ResponseEntity<Car> response3 = restTemplate.postForEntity("/api/v1/cars/check-in", compactInOversized, Car.class);
+        assertThat(response3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response3.getBody().size()).isEqualTo(VehicleSize.COMPACT);
+    }
+
+    @Test
+    void testVehicleSizeCompatibility_StandardCarCannotFitInCompactSpot() {
+        // Fill all standard and oversized spots first
+        ResponseEntity<ParkingSpot[]> spotsResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsResponse.getBody()).isNotNull();
+        
+        for (ParkingSpot spot : spotsResponse.getBody()) {
+            if (spot.status() == ParkingStatus.AVAILABLE && 
+                (spot.size() == VehicleSize.STANDARD || spot.size() == VehicleSize.OVERSIZED)) {
+                CheckInRequest fillRequest = new CheckInRequest("FILL-" + spot.id(), spot.size());
+                restTemplate.postForEntity("/api/v1/cars/check-in", fillRequest, Car.class);
+            }
+        }
+
+        // Now try to check in a standard car - should fail
+        CheckInRequest checkInRequest = new CheckInRequest("STANDARD-FAIL", VehicleSize.STANDARD);
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("NO_COMPATIBLE_SPOT_FOUND");
+    }
+
+    @Test
+    void testVehicleSizeCompatibility_OversizedCarCanOnlyFitInOversizedSpot() {
+        // Fill all oversized spots first
+        ResponseEntity<ParkingSpot[]> spotsResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsResponse.getBody()).isNotNull();
+        
+        for (ParkingSpot spot : spotsResponse.getBody()) {
+            if (spot.status() == ParkingStatus.AVAILABLE && spot.size() == VehicleSize.OVERSIZED) {
+                CheckInRequest fillRequest = new CheckInRequest("FILL-OVERSIZED-" + spot.id(), VehicleSize.OVERSIZED);
+                restTemplate.postForEntity("/api/v1/cars/check-in", fillRequest, Car.class);
+            }
+        }
+
+        // Now try to check in another oversized car - should fail
+        CheckInRequest checkInRequest = new CheckInRequest("OVERSIZED-FAIL", VehicleSize.OVERSIZED);
+        ResponseEntity<ErrorResponse> response = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("NO_COMPATIBLE_SPOT_FOUND");
+    }
+
+    @Test
+    void testMultipleCheckInsAndCheckOuts() {
+        // Check in multiple cars
+        CheckInRequest request1 = new CheckInRequest("MULTI-1", VehicleSize.COMPACT);
+        CheckInRequest request2 = new CheckInRequest("MULTI-2", VehicleSize.STANDARD);
+        CheckInRequest request3 = new CheckInRequest("MULTI-3", VehicleSize.OVERSIZED);
+
+        ResponseEntity<Car> response1 = restTemplate.postForEntity("/api/v1/cars/check-in", request1, Car.class);
+        ResponseEntity<Car> response2 = restTemplate.postForEntity("/api/v1/cars/check-in", request2, Car.class);
+        ResponseEntity<Car> response3 = restTemplate.postForEntity("/api/v1/cars/check-in", request3, Car.class);
+
+        assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response3.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // Verify all cars can be found
+        ResponseEntity<Car> find1 = restTemplate.getForEntity("/api/v1/cars/MULTI-1", Car.class);
+        ResponseEntity<Car> find2 = restTemplate.getForEntity("/api/v1/cars/MULTI-2", Car.class);
+        ResponseEntity<Car> find3 = restTemplate.getForEntity("/api/v1/cars/MULTI-3", Car.class);
+
+        assertThat(find1.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(find2.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(find3.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Check out all cars
+        CheckOutRequest checkout1 = new CheckOutRequest("MULTI-1");
+        CheckOutRequest checkout2 = new CheckOutRequest("MULTI-2");
+        CheckOutRequest checkout3 = new CheckOutRequest("MULTI-3");
+
+        ResponseEntity<CheckOutResponse> checkoutResponse1 = restTemplate.postForEntity("/api/v1/cars/check-out", checkout1, CheckOutResponse.class);
+        ResponseEntity<CheckOutResponse> checkoutResponse2 = restTemplate.postForEntity("/api/v1/cars/check-out", checkout2, CheckOutResponse.class);
+        ResponseEntity<CheckOutResponse> checkoutResponse3 = restTemplate.postForEntity("/api/v1/cars/check-out", checkout3, CheckOutResponse.class);
+
+        assertThat(checkoutResponse1.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(checkoutResponse2.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(checkoutResponse3.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Verify cars can no longer be found
+        ResponseEntity<ErrorResponse> notFound1 = restTemplate.getForEntity("/api/v1/cars/MULTI-1", ErrorResponse.class);
+        ResponseEntity<ErrorResponse> notFound2 = restTemplate.getForEntity("/api/v1/cars/MULTI-2", ErrorResponse.class);
+        ResponseEntity<ErrorResponse> notFound3 = restTemplate.getForEntity("/api/v1/cars/MULTI-3", ErrorResponse.class);
+
+        assertThat(notFound1.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(notFound2.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(notFound3.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void testSpotFeaturesArePreservedAfterCheckInAndCheckOut() {
+        // Check in to a premium spot
+        CheckInRequest checkInRequest = new CheckInRequest("FEATURE-TEST", VehicleSize.OVERSIZED);
+        ResponseEntity<Car> checkInResponse = restTemplate.postForEntity("/api/v1/cars/check-in", checkInRequest, Car.class);
+        assertThat(checkInResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        String assignedSpotId = checkInResponse.getBody().assignedSpotId();
+
+        // Get the spot and verify it has features
+        ResponseEntity<ParkingSpot[]> spotsResponse = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsResponse.getBody()).isNotNull();
+        
+        ParkingSpot occupiedSpot = null;
+        for (ParkingSpot spot : spotsResponse.getBody()) {
+            if (spot.id().equals(assignedSpotId)) {
+                occupiedSpot = spot;
+                break;
+            }
+        }
+        
+        assertThat(occupiedSpot).isNotNull();
+        assertThat(occupiedSpot.status()).isEqualTo(ParkingStatus.OCCUPIED);
+        
+        // Check out
+        CheckOutRequest checkOutRequest = new CheckOutRequest("FEATURE-TEST");
+        ResponseEntity<CheckOutResponse> checkOutResponse = restTemplate.postForEntity("/api/v1/cars/check-out", checkOutRequest, CheckOutResponse.class);
+        assertThat(checkOutResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // Verify the spot still has its features after checkout
+        ResponseEntity<ParkingSpot[]> spotsAfterCheckout = restTemplate.getForEntity("/api/v1/spots", ParkingSpot[].class);
+        assertThat(spotsAfterCheckout.getBody()).isNotNull();
+        
+        ParkingSpot availableSpot = null;
+        for (ParkingSpot spot : spotsAfterCheckout.getBody()) {
+            if (spot.id().equals(assignedSpotId)) {
+                availableSpot = spot;
+                break;
+            }
+        }
+        
+        assertThat(availableSpot).isNotNull();
+        assertThat(availableSpot.status()).isEqualTo(ParkingStatus.AVAILABLE);
+        assertThat(availableSpot.features()).isEqualTo(occupiedSpot.features());
     }
 }

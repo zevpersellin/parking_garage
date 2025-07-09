@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "parking-garage-api-collection",
-		"name": "Parking Garage Management API",
-		"description": "Complete collection for testing the Parking Garage Management API endpoints",
+		"name": "Parking Garage Management API v1.5",
+		"description": "Complete collection for testing the Parking Garage Management API endpoints including stretch goal features: vehicle search, size compatibility, rate calculation, and premium spot features",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -23,7 +23,7 @@
 								"spots"
 							]
 						},
-						"description": "Retrieve all parking spots with their current status"
+						"description": "Retrieve all parking spots with their current status, size, and features"
 					},
 					"response": []
 				},
@@ -42,7 +42,7 @@
 								"available"
 							]
 						},
-						"description": "Retrieve only the available parking spots"
+						"description": "Retrieve only the available parking spots with size and feature information"
 					},
 					"response": []
 				},
@@ -100,18 +100,18 @@
 								"status"
 							]
 						},
-						"description": "Test error handling for invalid spot ID (should return 404)"
+						"description": "Test error handling for invalid spot ID (should return 404 with SPOT_NOT_FOUND error)"
 					},
 					"response": []
 				}
 			],
-			"description": "Endpoints for managing parking spots"
+			"description": "Endpoints for managing parking spots with size and feature information"
 		},
 		{
 			"name": "Car Management",
 			"item": [
 				{
-					"name": "Check-in Car",
+					"name": "Check-in Car - Compact",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -122,7 +122,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"licensePlate\": \"ABC-123\"\n}"
+							"raw": "{\n  \"licensePlate\": \"COMPACT-123\",\n  \"size\": \"COMPACT\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/cars/check-in",
@@ -134,12 +134,12 @@
 								"check-in"
 							]
 						},
-						"description": "Check-in a car and assign it to the first available parking spot"
+						"description": "Check-in a compact car. Compact cars can fit in any spot size."
 					},
 					"response": []
 				},
 				{
-					"name": "Check-out Car",
+					"name": "Check-in Car - Standard",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -150,7 +150,63 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"licensePlate\": \"ABC-123\"\n}"
+							"raw": "{\n  \"licensePlate\": \"STANDARD-456\",\n  \"size\": \"STANDARD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Check-in a standard car. Standard cars can fit in standard or oversized spots."
+					},
+					"response": []
+				},
+				{
+					"name": "Check-in Car - Oversized",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"OVERSIZED-789\",\n  \"size\": \"OVERSIZED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Check-in an oversized car. Oversized cars can only fit in oversized spots."
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out Car with Fee Calculation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"COMPACT-123\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/cars/check-out",
@@ -162,7 +218,7 @@
 								"check-out"
 							]
 						},
-						"description": "Check-out a car and free up its assigned parking spot"
+						"description": "Check-out a car and receive calculated parking fee. Response includes licensePlate and fee amount."
 					},
 					"response": []
 				},
@@ -172,16 +228,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/cars/ABC-123",
+							"raw": "{{baseUrl}}/cars/COMPACT-123",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"cars",
-								"ABC-123"
+								"COMPACT-123"
 							]
 						},
-						"description": "Search for a car by its license plate number"
+						"description": "Search for a car by its license plate number. Returns car details including assigned spot and check-in time."
 					},
 					"response": []
 				},
@@ -200,7 +256,7 @@
 								"NONEXISTENT"
 							]
 						},
-						"description": "Test error handling for car not found (should return 404)"
+						"description": "Test error handling for car not found (should return 404 with CAR_NOT_FOUND error)"
 					},
 					"response": []
 				},
@@ -228,39 +284,130 @@
 								"check-out"
 							]
 						},
-						"description": "Test error handling for checking out a non-existent car (should return 404)"
+						"description": "Test error handling for checking out a non-existent car (should return 404 with CAR_NOT_FOUND error)"
 					},
 					"response": []
 				}
 			],
-			"description": "Endpoints for managing car check-ins and check-outs"
+			"description": "Endpoints for managing car check-ins and check-outs with vehicle sizing and fee calculation"
 		},
 		{
-			"name": "Test Scenarios",
+			"name": "Input Validation Tests",
 			"item": [
 				{
-					"name": "Complete Workflow Test",
+					"name": "Check-in with Empty License Plate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"\",\n  \"size\": \"COMPACT\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Test input validation for empty license plate (should return 400 with INVALID_INPUT error)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-in with Null Vehicle Size",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"TEST-NULL-SIZE\",\n  \"size\": null\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Test input validation for null vehicle size (should return 400 with INVALID_INPUT error)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out with Empty License Plate",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-out",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-out"
+							]
+						},
+						"description": "Test input validation for empty license plate in checkout (should return 400 with INVALID_INPUT error)"
+					},
+					"response": []
+				},
+				{
+					"name": "Find Car with Empty License Plate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/cars/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								""
+							]
+						},
+						"description": "Test input validation for empty license plate in search (should return 404 due to path mismatch)"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for input validation and error handling"
+		},
+		{
+			"name": "Vehicle Size Compatibility Tests",
+			"item": [
+				{
+					"name": "Fill All Compact Spots",
 					"item": [
 						{
-							"name": "1. Check Available Spots",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{baseUrl}}/spots/available",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"spots",
-										"available"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "2. Check-in Car",
+							"name": "Fill Compact Spot A1",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -271,7 +418,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"WORKFLOW-TEST\"\n}"
+									"raw": "{\n  \"licensePlate\": \"COMPACT-A1\",\n  \"size\": \"COMPACT\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/cars/check-in",
@@ -287,20 +434,430 @@
 							"response": []
 						},
 						{
-							"name": "3. Find the Car",
+							"name": "Fill Compact Spot A2",
 							"request": {
-								"method": "GET",
-								"header": [],
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"COMPACT-A2\",\n  \"size\": \"COMPACT\"\n}"
+								},
 								"url": {
-									"raw": "{{baseUrl}}/cars/WORKFLOW-TEST",
+									"raw": "{{baseUrl}}/cars/check-in",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"cars",
-										"WORKFLOW-TEST"
+										"check-in"
 									]
 								}
+							},
+							"response": []
+						},
+						{
+							"name": "Fill Compact Spot A3",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"COMPACT-A3\",\n  \"size\": \"COMPACT\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Fill Compact Spot A4",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"COMPACT-A4\",\n  \"size\": \"COMPACT\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Fill Compact Spot A5",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"COMPACT-A5\",\n  \"size\": \"COMPACT\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Fill all compact spots (A1-A5) to test size compatibility"
+				},
+				{
+					"name": "Fill All Standard and Oversized Spots",
+					"item": [
+						{
+							"name": "Fill Standard Spots with Standard Cars",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"STANDARD-B1\",\n  \"size\": \"STANDARD\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Fill B1, B2, B3 by changing license plate"
+							},
+							"response": []
+						},
+						{
+							"name": "Fill Oversized Spots with Oversized Cars",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"OVERSIZED-C1\",\n  \"size\": \"OVERSIZED\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Fill C1, C2 by changing license plate"
+							},
+							"response": []
+						}
+					],
+					"description": "Fill standard and oversized spots to test compatibility restrictions"
+				},
+				{
+					"name": "Test Size Compatibility Failures",
+					"item": [
+						{
+							"name": "Standard Car - No Compatible Spot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"STANDARD-FAIL\",\n  \"size\": \"STANDARD\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Try to check-in standard car when only compact spots available (should return 409 with NO_COMPATIBLE_SPOT_FOUND error)"
+							},
+							"response": []
+						},
+						{
+							"name": "Oversized Car - No Compatible Spot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"OVERSIZED-FAIL\",\n  \"size\": \"OVERSIZED\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Try to check-in oversized car when no oversized spots available (should return 409 with NO_COMPATIBLE_SPOT_FOUND error)"
+							},
+							"response": []
+						}
+					],
+					"description": "Test scenarios where no compatible spots are available"
+				}
+			],
+			"description": "Tests for vehicle size compatibility rules"
+		},
+		{
+			"name": "Premium Spot & Billing Tests",
+			"item": [
+				{
+					"name": "Check-in to Premium EV Spot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"EV-PREMIUM\",\n  \"size\": \"OVERSIZED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Check-in to a premium EV charging spot (C1 has EV_CHARGING feature)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out from Premium Spot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"EV-PREMIUM\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-out",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-out"
+							]
+						},
+						"description": "Check-out from premium EV spot - should calculate fee using premium rate ($7.50/hour vs $5.00/hour)"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-in to Regular Spot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"REGULAR-CAR\",\n  \"size\": \"STANDARD\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-in",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-in"
+							]
+						},
+						"description": "Check-in to a regular spot without premium features"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-out from Regular Spot",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"licensePlate\": \"REGULAR-CAR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/cars/check-out",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"cars",
+								"check-out"
+							]
+						},
+						"description": "Check-out from regular spot - should calculate fee using standard rate ($5.00/hour)"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests for premium spot features and billing calculations"
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Complete Workflow Test v1.5",
+					"item": [
+						{
+							"name": "1. Check Available Spots",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/spots/available",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"spots",
+										"available"
+									]
+								},
+								"description": "Check available spots with size and feature information"
+							},
+							"response": []
+						},
+						{
+							"name": "2. Check-in Car with Size",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V15\",\n  \"size\": \"COMPACT\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/cars/check-in",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"check-in"
+									]
+								},
+								"description": "Check-in car with vehicle size specification"
+							},
+							"response": []
+						},
+						{
+							"name": "3. Find the Car",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/cars/WORKFLOW-V15",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"WORKFLOW-V15"
+									]
+								},
+								"description": "Search for the car using the new vehicle search feature"
 							},
 							"response": []
 						},
@@ -318,12 +875,13 @@
 										"spots",
 										"available"
 									]
-								}
+								},
+								"description": "Verify one less spot is available"
 							},
 							"response": []
 						},
 						{
-							"name": "5. Check-out Car",
+							"name": "5. Check-out Car with Fee",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -334,7 +892,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"WORKFLOW-TEST\"\n}"
+									"raw": "{\n  \"licensePlate\": \"WORKFLOW-V15\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/cars/check-out",
@@ -345,7 +903,8 @@
 										"cars",
 										"check-out"
 									]
-								}
+								},
+								"description": "Check-out car and receive calculated parking fee"
 							},
 							"response": []
 						},
@@ -363,18 +922,38 @@
 										"spots",
 										"available"
 									]
-								}
+								},
+								"description": "Verify spot is available again"
+							},
+							"response": []
+						},
+						{
+							"name": "7. Try to Find Checked-out Car",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/cars/WORKFLOW-V15",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"cars",
+										"WORKFLOW-V15"
+									]
+								},
+								"description": "Verify car is no longer in the system (should return 404)"
 							},
 							"response": []
 						}
 					],
-					"description": "Complete workflow test: check availability → check-in → find car → check-out → verify"
+					"description": "Complete workflow test with v1.5 features: size compatibility, vehicle search, and fee calculation"
 				},
 				{
-					"name": "Garage Full Scenario",
+					"name": "Multi-Vehicle Scenario",
 					"item": [
 						{
-							"name": "Fill Garage - Car 1",
+							"name": "Check-in Multiple Vehicle Types",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -385,7 +964,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"FULL-CAR-1\"\n}"
+									"raw": "{\n  \"licensePlate\": \"MULTI-COMPACT\",\n  \"size\": \"COMPACT\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/cars/check-in",
@@ -396,39 +975,32 @@
 										"cars",
 										"check-in"
 									]
-								}
+								},
+								"description": "Check-in compact car (repeat with MULTI-STANDARD/STANDARD and MULTI-OVERSIZED/OVERSIZED)"
 							},
 							"response": []
 						},
 						{
-							"name": "Fill Garage - Car 2",
+							"name": "Find All Cars",
 							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"FULL-CAR-2\"\n}"
-								},
+								"method": "GET",
+								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/cars/check-in",
+									"raw": "{{baseUrl}}/cars/MULTI-COMPACT",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"cars",
-										"check-in"
+										"MULTI-COMPACT"
 									]
-								}
+								},
+								"description": "Find each car by license plate (repeat for each car)"
 							},
 							"response": []
 						},
 						{
-							"name": "Continue filling until garage is full...",
+							"name": "Check-out All Cars",
 							"request": {
 								"method": "POST",
 								"header": [
@@ -439,55 +1011,27 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"FULL-CAR-X\"\n}"
+									"raw": "{\n  \"licensePlate\": \"MULTI-COMPACT\"\n}"
 								},
 								"url": {
-									"raw": "{{baseUrl}}/cars/check-in",
+									"raw": "{{baseUrl}}/cars/check-out",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"cars",
-										"check-in"
+										"check-out"
 									]
 								},
-								"description": "Keep changing the license plate (FULL-CAR-3, FULL-CAR-4, etc.) until garage is full"
-							},
-							"response": []
-						},
-						{
-							"name": "Try to Check-in When Full",
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"licensePlate\": \"OVERFLOW-CAR\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/cars/check-in",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"cars",
-										"check-in"
-									]
-								},
-								"description": "This should return 409 CONFLICT with GARAGE_FULL error"
+								"description": "Check-out each car and verify fee calculation (repeat for each car)"
 							},
 							"response": []
 						}
 					],
-					"description": "Test the garage full scenario - fill all spots then try to add one more"
+					"description": "Test multiple vehicles of different sizes with search and billing"
 				}
 			],
-			"description": "Complete test scenarios and workflows"
+			"description": "Complete test scenarios and workflows for v1.5 features"
 		}
 	],
 	"event": [

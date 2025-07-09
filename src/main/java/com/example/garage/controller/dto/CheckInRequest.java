@@ -1,4 +1,6 @@
 package com.example.garage.controller.dto;
 
-public record CheckInRequest(String licensePlate) {
+import com.example.garage.model.VehicleSize;
+
+public record CheckInRequest(String licensePlate, VehicleSize size) {
 }
