@@ -1,0 +1,105 @@
+{
+  "info": {
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "name": "Parking Garage API",
+    "description": "Collection covering all current Parking Garage API endpoints, including dynamic spot creation.",
+    "_postman_id": "71e4d15d-bbea-4b89-8b5d-1234567890ab"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1"
+    }
+  ],
+  "item": [
+    {
+      "name": "List All Spots",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/spots"
+      }
+    },
+    {
+      "name": "List Available Spots",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/spots/available"
+      }
+    },
+    {
+      "name": "Create Spot",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"D1\",\n  \"level\": 4,\n  \"number\": 1,\n  \"size\": \"COMPACT\",\n  \"features\": []\n}"
+        },
+        "url": "{{base_url}}/spots"
+      }
+    },
+    {
+      "name": "Update Spot Status",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{ \n  \"status\": \"OCCUPIED\" \n}"
+        },
+        "url": "{{base_url}}/spots/{{spotId}}/status"
+      }
+    },
+    {
+      "name": "Check In Car",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"licensePlate\": \"ABC-123\",\n  \"size\": \"STANDARD\"\n}"
+        },
+        "url": "{{base_url}}/cars/check-in"
+      }
+    },
+    {
+      "name": "Check Out Car",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"licensePlate\": \"ABC-123\"\n}"
+        },
+        "url": "{{base_url}}/cars/check-out"
+      }
+    },
+    {
+      "name": "Find Car by License Plate",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/cars/{{licensePlate}}"
+      }
+    }
+  ]
+}

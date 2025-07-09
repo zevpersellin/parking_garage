@@ -129,6 +129,39 @@ class ParkingServiceTest {
     }
 
     @Test
+    void createParkingSpot_WithValidData_ShouldCreateAndReturnSpot() {
+        // Given
+        CreateSpotRequest request = new CreateSpotRequest("D1", 4, 1, VehicleSize.COMPACT, List.of());
+        when(parkingSpotRepository.existsById("D1")).thenReturn(false);
+        
+        ParkingSpot expectedSpot = new ParkingSpot("D1", 4, 1, ParkingStatus.AVAILABLE, VehicleSize.COMPACT, List.of());
+        when(parkingSpotRepository.save(any(ParkingSpot.class))).thenReturn(expectedSpot);
+
+        // When
+        ParkingSpot result = parkingService.createParkingSpot(request);
+
+        // Then
+        assertThat(result).isEqualTo(expectedSpot);
+        verify(parkingSpotRepository).existsById("D1");
+        verify(parkingSpotRepository).save(any(ParkingSpot.class));
+    }
+
+    @Test
+    void createParkingSpot_WhenSpotAlreadyExists_ShouldThrowSpotAlreadyExistsException() {
+        // Given
+        CreateSpotRequest request = new CreateSpotRequest("A1", 1, 1, VehicleSize.COMPACT, List.of());
+        when(parkingSpotRepository.existsById("A1")).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> parkingService.createParkingSpot(request))
+                .isInstanceOf(SpotAlreadyExistsException.class)
+                .hasMessage("Spot with id A1 already exists");
+
+        verify(parkingSpotRepository).existsById("A1");
+        verify(parkingSpotRepository, never()).save(any());
+    }
+
+    @Test
     void checkIn_WithAvailableCompactSpotForCompactCar_ShouldSucceed() {
         // Given
         when(parkingSpotRepository.findAllAvailable()).thenReturn(List.of(availableCompactSpot));

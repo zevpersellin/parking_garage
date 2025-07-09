@@ -2,6 +2,7 @@ package com.example.garage.controller;
 
 import com.example.garage.controller.dto.*;
 import com.example.garage.model.Car;
+import com.example.garage.model.CreateSpotRequest;
 import com.example.garage.model.ParkingSpot;
 import com.example.garage.service.ParkingService;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,12 @@ public class ParkingController {
     public ResponseEntity<ParkingSpot> updateSpotStatus(@PathVariable String id, @RequestBody UpdateSpotStatusRequest request) {
         ParkingSpot updatedSpot = parkingService.updateSpotStatus(id, request.status());
         return ResponseEntity.ok(updatedSpot);
+    }
+
+    @PostMapping("/spots")
+    public ResponseEntity<ParkingSpot> createSpot(@RequestBody CreateSpotRequest request) {
+        ParkingSpot newSpot = parkingService.createParkingSpot(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newSpot);
     }
 
     @PostMapping("/cars/check-in")

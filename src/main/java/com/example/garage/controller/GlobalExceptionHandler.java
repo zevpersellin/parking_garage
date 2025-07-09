@@ -34,6 +34,12 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("NO_COMPATIBLE_SPOT_FOUND", ex.getMessage());
     }
 
+    @ExceptionHandler(SpotAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleSpotAlreadyExistsException(SpotAlreadyExistsException ex) {
+        return new ErrorResponse("SPOT_ALREADY_EXISTS", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {

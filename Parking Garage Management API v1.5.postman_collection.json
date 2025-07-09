@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "parking-garage-api-collection",
+		"_postman_id": "42619409-f9ae-4b81-ab63-414ba8f83e7d",
 		"name": "Parking Garage Management API v1.5",
 		"description": "Complete collection for testing the Parking Garage Management API endpoints including stretch goal features: vehicle search, size compatibility, rate calculation, and premium spot features",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "993211"
 	},
 	"item": [
 		{

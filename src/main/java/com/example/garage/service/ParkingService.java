@@ -3,8 +3,10 @@ package com.example.garage.service;
 import com.example.garage.exception.CarNotFoundException;
 import com.example.garage.exception.GarageFullException;
 import com.example.garage.exception.NoCompatibleSpotFoundException;
+import com.example.garage.exception.SpotAlreadyExistsException;
 import com.example.garage.exception.SpotNotFoundException;
 import com.example.garage.model.Car;
+import com.example.garage.model.CreateSpotRequest;
 import com.example.garage.model.ParkingSpot;
 import com.example.garage.model.ParkingStatus;
 import com.example.garage.model.VehicleSize;
@@ -47,11 +49,44 @@ public class ParkingService {
     }
 
     public ParkingSpot updateSpotStatus(String spotId, ParkingStatus status) {
+        if (spotId == null || spotId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Spot id cannot be null or empty");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status cannot be null");
+        }
+        
         ParkingSpot spot = parkingSpotRepository.findById(spotId)
                 .orElseThrow(() -> new SpotNotFoundException("Spot with id " + spotId + " not found"));
         
         ParkingSpot updatedSpot = new ParkingSpot(spot.id(), spot.level(), spot.number(), status, spot.size(), spot.features());
         return parkingSpotRepository.save(updatedSpot);
+    }
+
+    public ParkingSpot createParkingSpot(CreateSpotRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Request cannot be null");
+        }
+        if (request.id() == null || request.id().trim().isEmpty()) {
+            throw new IllegalArgumentException("Spot id cannot be null or empty");
+        }
+        if (request.size() == null) {
+            throw new IllegalArgumentException("Spot size cannot be null");
+        }
+        if (parkingSpotRepository.existsById(request.id())) {
+            throw new SpotAlreadyExistsException("Spot with id " + request.id() + " already exists");
+        }
+
+        ParkingSpot newSpot = new ParkingSpot(
+                request.id(),
+                request.level(),
+                request.number(),
+                ParkingStatus.AVAILABLE, // New spots are available by default
+                request.size(),
+                request.features()
+        );
+
+        return parkingSpotRepository.save(newSpot);
     }
 
     public synchronized Car checkIn(String licensePlate, VehicleSize size) {

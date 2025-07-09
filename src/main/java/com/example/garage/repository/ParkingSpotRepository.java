@@ -60,4 +60,8 @@ public class ParkingSpotRepository {
     public Optional<ParkingSpot> findById(String id) {
         return Optional.ofNullable(parkingSpots.get(id));
     }
+
+    public boolean existsById(String id) {
+        return parkingSpots.containsKey(id);
+    }
 }
