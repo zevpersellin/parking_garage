@@ -1,14 +1,18 @@
-# Parking Garage Management API
+# Parking Garage Management API v1.5
 
-A Spring Boot REST API for managing parking garage operations, including spot inventory management and vehicle tracking.
+A Spring Boot REST API for managing parking garage operations, including spot inventory, vehicle tracking, and billing.
 
 ## Features
 
-- **Spot Management**: View all parking spots and their current status
-- **Vehicle Check-in/Check-out**: Assign cars to available spots and release them when leaving
-- **Real-time Availability**: Get current list of available parking spots
-- **Manual Spot Control**: Update spot status manually for maintenance or reservations
-- **Comprehensive Error Handling**: Proper HTTP status codes and error messages
+- **Spot Management**: View all parking spots and their current status.
+- **Real-time Availability**: Get a current list of available parking spots.
+- **Vehicle Search**: Find a car's location by its license plate number.
+- **Spot & Vehicle Sizing**: Assign vehicles to compatible spot sizes (`COMPACT`, `STANDARD`, `OVERSIZED`).
+- **Automated Billing**: Automatically calculate parking fees based on duration and spot type upon check-out.
+- **Premium Spot Rates**: Configure and apply different hourly rates for premium spots (e.g., EV charging).
+- **Vehicle Check-in/Check-out**: Assign cars to available spots and release them when leaving.
+- **Manual Spot Control**: Update spot status manually for maintenance or reservations.
+- **Comprehensive Error Handling**: Proper HTTP status codes and clear error messages.
 
 ## Technology Stack
 
@@ -18,32 +22,36 @@ A Spring Boot REST API for managing parking garage operations, including spot in
 - **JUnit 5 + Mockito** - Testing framework
 - **In-memory Storage** - ConcurrentHashMap for data persistence
 
-## Quick Start
-
-### Prerequisites
-
-- Java 17 or higher
-- Maven 3.9 or higher
-
 ### Running the Application
 
-1. **Clone and navigate to the project directory**
-   ```bash
-   git clone <repository-url>
-   cd parking_garage
-   ```
+1.  **Clone and navigate to the project directory**
+    ```bash
+    git clone <repository-url>
+    cd parking_garage
+    ```
 
-2. **Build the project**
-   ```bash
-   mvn clean compile
-   ```
+2.  **Configure Rates (Optional)**
+    - Create a file at `src/main/resources/application.properties`.
+    - Add your desired hourly rates. If not provided, defaults will be used.
+    ```properties
+    # Standard hourly rate for parking
+    parking.rate.hourly=5.00
 
-3. **Run the application**
-   ```bash
-   mvn spring-boot:run
-   ```
+    # Premium rate for spots with EV charging
+    parking.rate.premium.ev=7.50
+    ```
 
-4. **The API will be available at**: `http://localhost:8080`
+3.  **Build the project**
+    ```bash
+    mvn clean compile
+    ```
+
+4.  **Run the application**
+    ```bash
+    mvn spring-boot:run
+    ```
+
+5.  **The API will be available at**: `http://localhost:8080`
 
 ### Running Tests
 
@@ -76,13 +84,17 @@ GET /spots
     "id": "A1",
     "level": 1,
     "number": 1,
-    "status": "AVAILABLE"
+    "status": "AVAILABLE",
+    "size": "STANDARD",
+    "features": []
   },
   {
     "id": "A2",
     "level": 1,
     "number": 2,
-    "status": "OCCUPIED"
+    "status": "OCCUPIED",
+    "size": "COMPACT",
+    "features": []
   }
 ]
 ```
@@ -99,7 +111,9 @@ GET /spots/available
     "id": "A1",
     "level": 1,
     "number": 1,
-    "status": "AVAILABLE"
+    "status": "AVAILABLE",
+    "size": "STANDARD",
+    "features": []
   }
 ]
 ```
@@ -122,7 +136,9 @@ PUT /spots/{spotId}/status
   "id": "A1",
   "level": 1,
   "number": 1,
-  "status": "OCCUPIED"
+  "status": "OCCUPIED",
+  "size": "STANDARD",
+  "features": []
 }
 ```
 
@@ -142,7 +158,8 @@ POST /cars/check-in
 **Request Body**:
 ```json
 {
-  "licensePlate": "ABC-123"
+  "licensePlate": "ABC-123",
+  "size": "STANDARD"
 }
 ```
 
@@ -163,6 +180,14 @@ POST /cars/check-in
 }
 ```
 
+**Error Response**: `409 CONFLICT` (No Compatible Spot)
+```json
+{
+  "code": "NO_COMPATIBLE_SPOT_FOUND",
+  "message": "No compatible spot found for vehicle size STANDARD"
+}
+```
+
 #### 5. Check-out Car
 ```http
 POST /cars/check-out
@@ -175,7 +200,13 @@ POST /cars/check-out
 }
 ```
 
-**Response**: `200 OK` (Empty body)
+**Response**: `200 OK`
+```json
+{
+  "licensePlate": "ABC-123",
+  "fee": 5.00
+}
+```
 
 **Error Response**: `404 NOT FOUND`
 ```json
@@ -218,7 +249,7 @@ curl -X GET http://localhost:8080/api/v1/spots/available
 ```bash
 curl -X POST http://localhost:8080/api/v1/cars/check-in \
   -H "Content-Type: application/json" \
-  -d '{"licensePlate": "TEST-123"}'
+  -d '{"licensePlate": "TEST-123", "size": "COMPACT"}'
 ```
 
 ### Check-out a car
@@ -277,12 +308,15 @@ A comprehensive Postman collection is included in the project root: `Parking_Gar
 - `id` (String): Unique identifier (e.g., "A1", "A2")
 - `level` (Integer): Floor level (currently all spots are on level 1)
 - `number` (Integer): Spot number within the level
-- `status` (Enum): Either "AVAILABLE" or "OCCUPIED"
+- `status` (Enum): `AVAILABLE`, `OCCUPIED`, or `MAINTENANCE`
+- `size` (Enum): `COMPACT`, `STANDARD`, or `OVERSIZED`
+- `features` (List<String>): A list of special features, e.g., `["EV_CHARGING"]`
 
 ### Car
 - `licensePlate` (String): Unique license plate identifier
 - `assignedSpotId` (String): ID of the assigned parking spot
 - `checkInAt` (Instant): Timestamp when the car was checked in
+- `size` (Enum): `COMPACT`, `STANDARD`, or `OVERSIZED`
 
 ## Error Handling
 
@@ -291,7 +325,7 @@ The API uses standard HTTP status codes and returns consistent error responses:
 - `200 OK` - Successful operation
 - `201 CREATED` - Resource created successfully
 - `404 NOT FOUND` - Resource not found
-- `409 CONFLICT` - Business rule violation (e.g., garage full)
+- `409 CONFLICT` - Business rule violation (e.g., garage full, no compatible spot)
 
 All error responses follow this format:
 ```json
@@ -314,32 +348,29 @@ The application follows a layered architecture:
 
 The project includes comprehensive testing:
 
-- **Unit Tests**: 8 tests covering service layer business logic
-- **Integration Tests**: 6 tests covering full API workflows
-- **Total Coverage**: 14 tests with 100% pass rate
+- **Unit Tests**: 10+ tests covering service layer business logic, including sizing and billing.
+- **Integration Tests**: 8+ tests covering full API workflows and edge cases.
+- **Total Coverage**: 18+ tests with a 100% pass rate.
 
 ### Test Categories
 
-1. **Happy Path Tests**: Normal operation scenarios
-2. **Error Handling Tests**: Exception and edge cases
-3. **Business Logic Tests**: Garage full, car not found scenarios
-4. **API Contract Tests**: HTTP status codes and response formats
+1.  **Happy Path Tests**: Normal operation scenarios
+2.  **Error Handling Tests**: Exception and edge cases
+3.  **Business Logic Tests**: Garage full, car not found, sizing conflicts, and rate selection
+4.  **API Contract Tests**: HTTP status codes and response formats
 
 ## Future Enhancements
 
-The current implementation provides a solid foundation for the following stretch goals:
-
-- **Car Search**: `GET /cars/{licensePlate}` endpoint
-- **Spot Size Compatibility**: Support for different vehicle and spot sizes
-- **Billing System**: Hourly rate calculation based on parking duration
-- **Persistent Storage**: Database integration for production use
-- **Authentication**: User management and access control
+- **Persistent Storage**: Database integration (e.g., PostgreSQL) for production use.
+- **Authentication & Authorization**: Secure endpoints with user roles and permissions.
+- **Expanded Features**: Reservations, detailed reporting, and analytics.
 
 ## Development Notes
 
-- The garage is initialized with 10 parking spots (A1-A10) on level 1
-- All data is stored in-memory using ConcurrentHashMap for thread safety
-- The application uses Java 17 records for immutable data models
+- The garage is initialized with 10 parking spots of various sizes.
+- One oversized spot is pre-configured with the `EV_CHARGING` feature for premium rate testing.
+- All data is stored in-memory using ConcurrentHashMap for thread safety.
+- The application uses Java 17 records for immutable data models.
 - Error handling is centralized using Spring's @ControllerAdvice
 
 ## Contributing
